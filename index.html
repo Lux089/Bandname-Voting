@@ -190,6 +190,42 @@
       font-weight: 600;
     }
 
+    .suggestion-row {
+      display: grid;
+      grid-template-columns: 1fr auto;
+      gap: 10px;
+      align-items: center;
+    }
+
+    .suggestion-row button {
+      width: auto;
+      padding: 10px 12px;
+      white-space: nowrap;
+    }
+
+    .small {
+      padding: 8px 10px;
+      font-size: 0.85rem;
+    }
+
+    .vote-row {
+      display: grid;
+      grid-template-columns: auto 1fr auto;
+      gap: 10px;
+      align-items: center;
+    }
+
+    .vote-row input[type="number"] {
+      width: 72px;
+      text-align: center;
+    }
+
+    .actions {
+      display: flex;
+      gap: 10px;
+      align-items: center;
+    }
+
     @media (max-width: 720px) {
       header {
         margin-top: 24px;
@@ -197,6 +233,14 @@
 
       .row {
         flex-direction: column;
+      }
+
+      .suggestion-row {
+        grid-template-columns: 1fr;
+      }
+
+      .vote-row {
+        grid-template-columns: auto 1fr;
       }
     }
   </style>
@@ -215,11 +259,14 @@
         <input id="name" placeholder="z. B. Alex">
       </div>
       <div class="field">
-        <label for="vorschlag">Dein Bandname</label>
-        <input id="vorschlag" placeholder="z. B. Neon Atlas">
+        <label>Deine Bandnamen</label>
+        <div id="suggestionList" class="list"></div>
       </div>
-      <button onclick="submitSuggestion()">Absenden</button>
-      <p class="hint">Eingereichte Vorschläge erscheinen nach der Freigabe.</p>
+      <div class="actions">
+        <button class="secondary small" onclick="addSuggestionRow()">+ Vorschlag</button>
+        <button onclick="submitSuggestionsBatch()">Alle Vorschläge absenden</button>
+      </div>
+      <p class="hint">Mehrere Vorschläge möglich. Sie erscheinen sofort in der Liste.</p>
       <p id="msg" class="status"></p>
     </div>
 
@@ -230,58 +277,22 @@
         <input id="voter" placeholder="z. B. alex-2026">
       </div>
       <div class="row">
-        <div class="field">
-          <label for="voteLimit">Stimmen pro Person</label>
-          <select id="voteLimit">
-            <option value="1">1 Stimme</option>
-            <option value="2">2 Stimmen</option>
-            <option value="3" selected>3 Stimmen</option>
-            <option value="5">5 Stimmen</option>
-          </select>
-        </div>
-        <div class="field">
-          <label>&nbsp;</label>
-          <div class="pill" id="remainingVotes">Verbleibend: 3</div>
-        </div>
-      </div>
-      <div class="row">
         <button onclick="loadSuggestions()">Vorschläge laden</button>
-        <button class="secondary" onclick="resetLocalVotes()">Lokale Votes zurücksetzen</button>
+        <div class="pill" id="voteCount">Ausgewählt: 0/5</div>
       </div>
+      <p class="hint">Maximal 5 Stimmen pro Person. Mehrfachstimmen für denselben Vorschlag sind erlaubt.</p>
       <div id="list" class="list"></div>
+      <button id="submitVotes" onclick="submitVotesBatch()" disabled>Votes absenden</button>
       <p id="voteMsg" class="status"></p>
     </div>
   </div>
 
   <script>
     const API_URL = "https://script.google.com/macros/s/AKfycbxXM0gCbm0M3vCeTvZDtkDWU0zNBN1x6QONaQoH7C21viGdIIAA_n__837MjCeOgsoVNA/exec";
-
-    const STORAGE_KEY = 'bandnameVoting';
-
-    function getState() {
-      try {
-        return JSON.parse(localStorage.getItem(STORAGE_KEY)) || {};
-      } catch {
-        return {};
-      }
-    }
-
-    function setState(state) {
-      localStorage.setItem(STORAGE_KEY, JSON.stringify(state));
-    }
+    const MAX_VOTES = 5;
 
     function normalizeVoter(value) {
       return (value || '').trim().toLowerCase();
-    }
-
-    function updateRemainingVotes() {
-      const voter = normalizeVoter(document.getElementById('voter').value);
-      const limit = Number(document.getElementById('voteLimit').value) || 1;
-      const state = getState();
-      const voterState = state[voter] || { limit, used: 0, votes: {} };
-      const remaining = Math.max(0, (voterState.limit || limit) - (voterState.used || 0));
-      const pill = document.getElementById('remainingVotes');
-      pill.textContent = `Verbleibend: ${remaining}`;
     }
 
     function setStatus(target, ok, message) {
@@ -291,15 +302,54 @@
       if (ok === false) target.classList.add('error');
     }
 
-    async function submitSuggestion() {
+    function addSuggestionRow(value = '') {
+      const list = document.getElementById('suggestionList');
+      const row = document.createElement('div');
+      row.className = 'suggestion-row';
+
+      const input = document.createElement('input');
+      input.className = 'suggestion-input';
+      input.placeholder = 'z. B. Neon Atlas';
+      input.value = value;
+
+      const remove = document.createElement('button');
+      remove.type = 'button';
+      remove.className = 'secondary small';
+      remove.textContent = 'Entfernen';
+      remove.onclick = () => {
+        row.remove();
+        ensureSuggestionRow();
+      };
+
+      row.appendChild(input);
+      row.appendChild(remove);
+      list.appendChild(row);
+      ensureSuggestionRow();
+      input.focus();
+    }
+
+    function ensureSuggestionRow() {
+      const list = document.getElementById('suggestionList');
+      if (!list.children.length) {
+        addSuggestionRow();
+      }
+
+      const rows = list.querySelectorAll('.suggestion-row');
+      rows.forEach((row, index) => {
+        const button = row.querySelector('button');
+        if (button) button.disabled = rows.length === 1 && index === 0;
+      });
+    }
+
+    async function submitSuggestionsBatch() {
       const name = document.getElementById('name').value.trim();
-      const vorschlagInput = document.getElementById('vorschlag');
-      const vorschlag = vorschlagInput.value.trim();
+      const inputs = Array.from(document.querySelectorAll('.suggestion-input'));
+      const vorschlaege = inputs.map(input => input.value.trim()).filter(Boolean);
       const msg = document.getElementById('msg');
 
-      if (!vorschlag) {
-        setStatus(msg, false, 'Bitte einen Bandnamen eingeben.');
-        vorschlagInput.focus();
+      if (!vorschlaege.length) {
+        setStatus(msg, false, 'Bitte mindestens einen Bandnamen eingeben.');
+        inputs[0]?.focus();
         return;
       }
 
@@ -308,16 +358,17 @@
       const res = await fetch(API_URL, {
         method: 'POST',
         body: JSON.stringify({
-          action: 'submitSuggestion',
+          action: 'submitSuggestionsBatch',
           name,
-          vorschlag
+          vorschlaege
         })
       });
 
       const data = await res.json();
       if (data.ok) {
-        setStatus(msg, true, 'Gespeichert! Danke für den Vorschlag.');
-        vorschlagInput.value = '';
+        setStatus(msg, true, `Gespeichert! ${data.count || vorschlaege.length} Vorschläge übernommen.`);
+        document.getElementById('suggestionList').innerHTML = '';
+        addSuggestionRow();
       } else {
         setStatus(msg, false, 'Fehler: ' + data.error);
       }
@@ -342,7 +393,7 @@
       const sorted = [...data.items].sort((a, b) => a.vorschlag.localeCompare(b.vorschlag, 'de'));
 
       if (!sorted.length) {
-        list.innerHTML = '<div class="meta">Noch keine freigegebenen Vorschläge.</div>';
+        list.innerHTML = '<div class="meta">Noch keine Vorschläge vorhanden.</div>';
         return;
       }
 
@@ -350,8 +401,35 @@
         const div = document.createElement('div');
         div.className = 'item';
 
+        const row = document.createElement('div');
+        row.className = 'vote-row';
+
+        const checkbox = document.createElement('input');
+        checkbox.type = 'checkbox';
+        checkbox.dataset.vorschlagId = item.id;
+
         const title = document.createElement('strong');
         title.textContent = item.vorschlag;
+
+        const count = document.createElement('input');
+        count.type = 'number';
+        count.min = '1';
+        count.value = '1';
+        count.disabled = true;
+
+        checkbox.addEventListener('change', () => {
+          count.disabled = !checkbox.checked;
+          if (checkbox.checked) {
+            count.value = '1';
+          }
+          updateVoteCount();
+        });
+
+        count.addEventListener('input', () => {
+          const numeric = Math.max(1, Number(count.value) || 1);
+          count.value = String(numeric);
+          enforceVoteLimit(count);
+        });
 
         const meta = document.createElement('div');
         meta.className = 'meta';
@@ -359,94 +437,106 @@
         const date = item.timestamp ? new Date(item.timestamp).toLocaleDateString('de-DE') : '';
         meta.textContent = date ? `${author} · ${date}` : author;
 
-        const button = document.createElement('button');
-        button.textContent = 'Dafür stimmen';
-        button.onclick = () => vote(item.id, item.vorschlag, button);
+        row.appendChild(checkbox);
+        row.appendChild(title);
+        row.appendChild(count);
 
-        div.appendChild(title);
+        div.appendChild(row);
         div.appendChild(meta);
-        div.appendChild(button);
         list.appendChild(div);
       });
+
+      updateVoteCount();
     }
 
-    async function vote(vorschlagId, vorschlagText, button) {
-      const rawVoter = document.getElementById('voter').value;
-      const voterKey = normalizeVoter(rawVoter);
-      const voteMsg = document.getElementById('voteMsg');
-      const limit = Number(document.getElementById('voteLimit').value) || 1;
+    function getSelectedVotes() {
+      const items = Array.from(document.querySelectorAll('#list .item'));
+      const selected = [];
+      let total = 0;
 
-      if (!voterKey) {
+      items.forEach(item => {
+        const checkbox = item.querySelector('input[type="checkbox"]');
+        const countInput = item.querySelector('input[type="number"]');
+        if (checkbox && countInput && checkbox.checked) {
+          const count = Math.max(1, Number(countInput.value) || 1);
+          selected.push({
+            vorschlag_id: checkbox.dataset.vorschlagId,
+            count
+          });
+          total += count;
+        }
+      });
+
+      return { selected, total };
+    }
+
+    function updateVoteCount() {
+      const { total } = getSelectedVotes();
+      const pill = document.getElementById('voteCount');
+      const submit = document.getElementById('submitVotes');
+      pill.textContent = `Ausgewählt: ${total}/${MAX_VOTES}`;
+      submit.disabled = total === 0 || total > MAX_VOTES;
+    }
+
+    function enforceVoteLimit(currentInput) {
+      const { total } = getSelectedVotes();
+      if (total > MAX_VOTES) {
+        const currentValue = Math.max(1, Number(currentInput.value) || 1);
+        const excess = total - MAX_VOTES;
+        currentInput.value = String(Math.max(1, currentValue - excess));
+      }
+      updateVoteCount();
+    }
+
+    async function submitVotesBatch() {
+      const voter = normalizeVoter(document.getElementById('voter').value);
+      const voteMsg = document.getElementById('voteMsg');
+      const { selected, total } = getSelectedVotes();
+
+      if (!voter) {
         setStatus(voteMsg, false, 'Bitte zuerst deinen Voting-Code oder Namen eingeben.');
         return;
       }
 
-      const state = getState();
-      const voterState = state[voterKey] || { limit, used: 0, votes: {} };
-      voterState.limit = limit;
-
-      if (voterState.votes[vorschlagId]) {
-        setStatus(voteMsg, false, `Für "${vorschlagText}" hast du bereits gestimmt.`);
+      if (!selected.length) {
+        setStatus(voteMsg, false, 'Bitte mindestens einen Vorschlag auswählen.');
         return;
       }
 
-      if (voterState.used >= voterState.limit) {
-        setStatus(voteMsg, false, 'Dein Stimmkontingent ist aufgebraucht.');
+      if (total > MAX_VOTES) {
+        setStatus(voteMsg, false, `Maximal ${MAX_VOTES} Stimmen erlaubt.`);
         return;
       }
 
-      const uniqueVoter = `${voterKey}:${voterState.used + 1}`;
-      if (button) {
-        button.disabled = true;
-        button.textContent = 'Speichere...';
-      }
+      setStatus(voteMsg, null, 'Speichere Votes...');
 
       const res = await fetch(API_URL, {
         method: 'POST',
         body: JSON.stringify({
-          action: 'vote',
-          voter: uniqueVoter,
-          vorschlag_id: vorschlagId
+          action: 'submitVotesBatch',
+          voter,
+          votes: selected
         })
       });
 
       const data = await res.json();
       if (data.ok) {
-        voterState.used += 1;
-        voterState.votes[vorschlagId] = true;
-        state[voterKey] = voterState;
-        setState(state);
-        setStatus(voteMsg, true, `Vote gespeichert! (${voterState.used}/${voterState.limit})`);
-        updateRemainingVotes();
-        if (button) {
-          button.textContent = 'Gestimmt';
-        }
+        setStatus(voteMsg, true, `Votes gespeichert (${data.count || total}).`);
+        document.querySelectorAll('#list input[type="checkbox"]').forEach(checkbox => {
+          checkbox.checked = false;
+        });
+        document.querySelectorAll('#list input[type="number"]').forEach(input => {
+          input.value = '1';
+          input.disabled = true;
+        });
+        updateVoteCount();
       } else {
         setStatus(voteMsg, false, 'Fehler: ' + data.error);
-        if (button) {
-          button.disabled = false;
-          button.textContent = 'Dafür stimmen';
-        }
       }
     }
 
-    function resetLocalVotes() {
-      const voter = normalizeVoter(document.getElementById('voter').value);
-      if (!voter) {
-        setStatus(document.getElementById('voteMsg'), false, 'Bitte zuerst deinen Voting-Code eingeben.');
-        return;
-      }
-      const state = getState();
-      delete state[voter];
-      setState(state);
-      updateRemainingVotes();
-      setStatus(document.getElementById('voteMsg'), true, 'Lokale Votes wurden zurückgesetzt.');
-      loadSuggestions();
-    }
-
-    document.getElementById('voter').addEventListener('input', updateRemainingVotes);
-    document.getElementById('voteLimit').addEventListener('change', updateRemainingVotes);
-    updateRemainingVotes();
+    addSuggestionRow();
+    updateVoteCount();
   </script>
 </body>
 </html>
