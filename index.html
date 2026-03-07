@@ -5,60 +5,305 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Bandnamen sammeln</title>
   <style>
-    body {
-      font-family: Arial, sans-serif;
-      max-width: 700px;
-      margin: 40px auto;
-      padding: 20px;
-      line-height: 1.5;
+    :root {
+      color-scheme: light;
+      --bg: #f7f8fb;
+      --card: #ffffff;
+      --text: #141821;
+      --muted: #6a7384;
+      --line: #e3e7ef;
+      --accent: #2b59ff;
+      --accent-dark: #2248c8;
+      --success: #1a7f5a;
+      --error: #c63b3b;
+      --shadow: 0 10px 30px rgba(17, 24, 39, 0.08);
     }
-    input, button {
-      padding: 10px;
-      margin: 8px 0;
-      width: 100%;
+
+    * {
       box-sizing: border-box;
     }
+
+    body {
+      font-family: "Segoe UI", "Inter", system-ui, sans-serif;
+      background: var(--bg);
+      color: var(--text);
+      margin: 0;
+      padding: 0 16px 48px;
+      line-height: 1.5;
+    }
+
+    header {
+      max-width: 1000px;
+      margin: 40px auto 16px;
+      padding: 16px;
+    }
+
+    header h1 {
+      margin: 0 0 8px;
+      font-size: clamp(1.8rem, 3vw, 2.6rem);
+      letter-spacing: -0.02em;
+    }
+
+    header p {
+      margin: 0;
+      color: var(--muted);
+      max-width: 720px;
+    }
+
+    .layout {
+      max-width: 1000px;
+      margin: 0 auto;
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+      gap: 20px;
+    }
+
+    .box {
+      background: var(--card);
+      border: 1px solid var(--line);
+      padding: 20px;
+      border-radius: 16px;
+      box-shadow: var(--shadow);
+    }
+
+    .box h2 {
+      margin: 0 0 12px;
+      font-size: 1.2rem;
+    }
+
+    .field {
+      display: flex;
+      flex-direction: column;
+      gap: 6px;
+      margin-bottom: 12px;
+    }
+
+    label {
+      font-size: 0.9rem;
+      color: var(--muted);
+    }
+
+    input, select, button {
+      padding: 12px 14px;
+      border-radius: 10px;
+      border: 1px solid var(--line);
+      font-size: 1rem;
+      width: 100%;
+      background: #fff;
+    }
+
+    input:focus, select:focus {
+      outline: 2px solid rgba(43, 89, 255, 0.2);
+      border-color: var(--accent);
+    }
+
     button {
       cursor: pointer;
+      background: var(--accent);
+      color: #fff;
+      border: none;
+      font-weight: 600;
+      transition: transform 0.05s ease, background 0.2s ease;
     }
-    .box {
-      border: 1px solid #ccc;
-      padding: 16px;
-      border-radius: 10px;
-      margin-bottom: 20px;
+
+    button:hover {
+      background: var(--accent-dark);
     }
+
+    button:active {
+      transform: translateY(1px);
+    }
+
+    button.secondary {
+      background: #f0f2f8;
+      color: var(--text);
+      border: 1px solid var(--line);
+      font-weight: 500;
+    }
+
+    button.secondary:hover {
+      background: #e6e9f2;
+    }
+
+    .hint {
+      font-size: 0.85rem;
+      color: var(--muted);
+      margin: 8px 0 0;
+    }
+
+    .status {
+      margin-top: 12px;
+      font-weight: 600;
+    }
+
+    .status.success {
+      color: var(--success);
+    }
+
+    .status.error {
+      color: var(--error);
+    }
+
+    .list {
+      display: grid;
+      gap: 12px;
+      margin-top: 12px;
+    }
+
     .item {
-      border-bottom: 1px solid #eee;
-      padding: 10px 0;
+      border: 1px solid var(--line);
+      border-radius: 12px;
+      padding: 12px;
+      background: #fff;
+      display: grid;
+      gap: 8px;
+    }
+
+    .item strong {
+      font-size: 1.05rem;
+    }
+
+    .meta {
+      color: var(--muted);
+      font-size: 0.85rem;
+    }
+
+    .row {
+      display: flex;
+      gap: 10px;
+      align-items: center;
+    }
+
+    .row > * {
+      flex: 1;
+    }
+
+    .pill {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      padding: 6px 10px;
+      border-radius: 999px;
+      background: #eef2ff;
+      color: #2b59ff;
+      font-size: 0.85rem;
+      font-weight: 600;
+    }
+
+    @media (max-width: 720px) {
+      header {
+        margin-top: 24px;
+      }
+
+      .row {
+        flex-direction: column;
+      }
     }
   </style>
 </head>
 <body>
-  <h1>Bandnamen sammeln</h1>
+  <header>
+    <h1>Bandnamen sammeln</h1>
+    <p>Sammelt neue Namen, prüft die Vorschläge und stimmt gemeinsam ab. Die Auswahl ist pro Person begrenzt, damit die Entscheidung fair bleibt.</p>
+  </header>
 
-  <div class="box">
-    <h2>Vorschlag einreichen</h2>
-    <input id="name" placeholder="Dein Name (optional)">
-    <input id="vorschlag" placeholder="Dein Bandname">
-    <button onclick="submitSuggestion()">Absenden</button>
-    <p id="msg"></p>
-  </div>
+  <div class="layout">
+    <div class="box">
+      <h2>Vorschlag einreichen</h2>
+      <div class="field">
+        <label for="name">Dein Name (optional)</label>
+        <input id="name" placeholder="z. B. Alex">
+      </div>
+      <div class="field">
+        <label for="vorschlag">Dein Bandname</label>
+        <input id="vorschlag" placeholder="z. B. Neon Atlas">
+      </div>
+      <button onclick="submitSuggestion()">Absenden</button>
+      <p class="hint">Eingereichte Vorschläge erscheinen nach der Freigabe.</p>
+      <p id="msg" class="status"></p>
+    </div>
 
-  <div class="box">
-    <h2>Voting</h2>
-    <input id="voter" placeholder="Dein Voting-Code oder Name">
-    <button onclick="loadSuggestions()">Vorschläge laden</button>
-    <div id="list"></div>
-    <p id="voteMsg"></p>
+    <div class="box">
+      <h2>Voting</h2>
+      <div class="field">
+        <label for="voter">Dein Voting-Code oder Name</label>
+        <input id="voter" placeholder="z. B. alex-2026">
+      </div>
+      <div class="row">
+        <div class="field">
+          <label for="voteLimit">Stimmen pro Person</label>
+          <select id="voteLimit">
+            <option value="1">1 Stimme</option>
+            <option value="2">2 Stimmen</option>
+            <option value="3" selected>3 Stimmen</option>
+            <option value="5">5 Stimmen</option>
+          </select>
+        </div>
+        <div class="field">
+          <label>&nbsp;</label>
+          <div class="pill" id="remainingVotes">Verbleibend: 3</div>
+        </div>
+      </div>
+      <div class="row">
+        <button onclick="loadSuggestions()">Vorschläge laden</button>
+        <button class="secondary" onclick="resetLocalVotes()">Lokale Votes zurücksetzen</button>
+      </div>
+      <div id="list" class="list"></div>
+      <p id="voteMsg" class="status"></p>
+    </div>
   </div>
 
   <script>
     const API_URL = "https://script.google.com/macros/s/AKfycbxXM0gCbm0M3vCeTvZDtkDWU0zNBN1x6QONaQoH7C21viGdIIAA_n__837MjCeOgsoVNA/exec";
 
+    const STORAGE_KEY = 'bandnameVoting';
+
+    function getState() {
+      try {
+        return JSON.parse(localStorage.getItem(STORAGE_KEY)) || {};
+      } catch {
+        return {};
+      }
+    }
+
+    function setState(state) {
+      localStorage.setItem(STORAGE_KEY, JSON.stringify(state));
+    }
+
+    function normalizeVoter(value) {
+      return (value || '').trim().toLowerCase();
+    }
+
+    function updateRemainingVotes() {
+      const voter = normalizeVoter(document.getElementById('voter').value);
+      const limit = Number(document.getElementById('voteLimit').value) || 1;
+      const state = getState();
+      const voterState = state[voter] || { limit, used: 0, votes: {} };
+      const remaining = Math.max(0, (voterState.limit || limit) - (voterState.used || 0));
+      const pill = document.getElementById('remainingVotes');
+      pill.textContent = `Verbleibend: ${remaining}`;
+    }
+
+    function setStatus(target, ok, message) {
+      target.textContent = message;
+      target.classList.remove('success', 'error');
+      if (ok === true) target.classList.add('success');
+      if (ok === false) target.classList.add('error');
+    }
+
     async function submitSuggestion() {
-      const name = document.getElementById('name').value;
-      const vorschlag = document.getElementById('vorschlag').value;
+      const name = document.getElementById('name').value.trim();
+      const vorschlagInput = document.getElementById('vorschlag');
+      const vorschlag = vorschlagInput.value.trim();
       const msg = document.getElementById('msg');
+
+      if (!vorschlag) {
+        setStatus(msg, false, 'Bitte einen Bandnamen eingeben.');
+        vorschlagInput.focus();
+        return;
+      }
+
+      setStatus(msg, null, 'Speichere...');
 
       const res = await fetch(API_URL, {
         method: 'POST',
@@ -70,57 +315,138 @@
       });
 
       const data = await res.json();
-      msg.textContent = data.ok ? 'Gespeichert!' : 'Fehler: ' + data.error;
+      if (data.ok) {
+        setStatus(msg, true, 'Gespeichert! Danke für den Vorschlag.');
+        vorschlagInput.value = '';
+      } else {
+        setStatus(msg, false, 'Fehler: ' + data.error);
+      }
     }
 
     async function loadSuggestions() {
       const list = document.getElementById('list');
-      list.innerHTML = 'Lade...';
+      const voteMsg = document.getElementById('voteMsg');
+      list.innerHTML = '<div class="meta">Lade Vorschläge...</div>';
+      setStatus(voteMsg, null, '');
 
       const res = await fetch(API_URL + '?action=list');
       const data = await res.json();
 
       if (!data.ok) {
-        list.innerHTML = 'Fehler beim Laden';
+        list.innerHTML = '<div class="meta">Fehler beim Laden.</div>';
         return;
       }
 
       list.innerHTML = '';
 
-      data.items.forEach(item => {
+      const sorted = [...data.items].sort((a, b) => a.vorschlag.localeCompare(b.vorschlag, 'de'));
+
+      if (!sorted.length) {
+        list.innerHTML = '<div class="meta">Noch keine freigegebenen Vorschläge.</div>';
+        return;
+      }
+
+      sorted.forEach(item => {
         const div = document.createElement('div');
         div.className = 'item';
 
         const title = document.createElement('strong');
         title.textContent = item.vorschlag;
 
+        const meta = document.createElement('div');
+        meta.className = 'meta';
+        const author = item.name ? `Von ${item.name}` : 'Anonym';
+        const date = item.timestamp ? new Date(item.timestamp).toLocaleDateString('de-DE') : '';
+        meta.textContent = date ? `${author} · ${date}` : author;
+
         const button = document.createElement('button');
         button.textContent = 'Dafür stimmen';
-        button.onclick = () => vote(item.id);
+        button.onclick = () => vote(item.id, item.vorschlag, button);
 
         div.appendChild(title);
-        div.appendChild(document.createElement('br'));
+        div.appendChild(meta);
         div.appendChild(button);
         list.appendChild(div);
       });
     }
 
-    async function vote(vorschlagId) {
-      const voter = document.getElementById('voter').value;
+    async function vote(vorschlagId, vorschlagText, button) {
+      const rawVoter = document.getElementById('voter').value;
+      const voterKey = normalizeVoter(rawVoter);
       const voteMsg = document.getElementById('voteMsg');
+      const limit = Number(document.getElementById('voteLimit').value) || 1;
+
+      if (!voterKey) {
+        setStatus(voteMsg, false, 'Bitte zuerst deinen Voting-Code oder Namen eingeben.');
+        return;
+      }
+
+      const state = getState();
+      const voterState = state[voterKey] || { limit, used: 0, votes: {} };
+      voterState.limit = limit;
+
+      if (voterState.votes[vorschlagId]) {
+        setStatus(voteMsg, false, `Für "${vorschlagText}" hast du bereits gestimmt.`);
+        return;
+      }
+
+      if (voterState.used >= voterState.limit) {
+        setStatus(voteMsg, false, 'Dein Stimmkontingent ist aufgebraucht.');
+        return;
+      }
+
+      const uniqueVoter = `${voterKey}:${voterState.used + 1}`;
+      if (button) {
+        button.disabled = true;
+        button.textContent = 'Speichere...';
+      }
 
       const res = await fetch(API_URL, {
         method: 'POST',
         body: JSON.stringify({
           action: 'vote',
-          voter,
+          voter: uniqueVoter,
           vorschlag_id: vorschlagId
         })
       });
 
       const data = await res.json();
-      voteMsg.textContent = data.ok ? 'Vote gespeichert!' : 'Fehler: ' + data.error;
+      if (data.ok) {
+        voterState.used += 1;
+        voterState.votes[vorschlagId] = true;
+        state[voterKey] = voterState;
+        setState(state);
+        setStatus(voteMsg, true, `Vote gespeichert! (${voterState.used}/${voterState.limit})`);
+        updateRemainingVotes();
+        if (button) {
+          button.textContent = 'Gestimmt';
+        }
+      } else {
+        setStatus(voteMsg, false, 'Fehler: ' + data.error);
+        if (button) {
+          button.disabled = false;
+          button.textContent = 'Dafür stimmen';
+        }
+      }
     }
+
+    function resetLocalVotes() {
+      const voter = normalizeVoter(document.getElementById('voter').value);
+      if (!voter) {
+        setStatus(document.getElementById('voteMsg'), false, 'Bitte zuerst deinen Voting-Code eingeben.');
+        return;
+      }
+      const state = getState();
+      delete state[voter];
+      setState(state);
+      updateRemainingVotes();
+      setStatus(document.getElementById('voteMsg'), true, 'Lokale Votes wurden zurückgesetzt.');
+      loadSuggestions();
+    }
+
+    document.getElementById('voter').addEventListener('input', updateRemainingVotes);
+    document.getElementById('voteLimit').addEventListener('change', updateRemainingVotes);
+    updateRemainingVotes();
   </script>
 </body>
 </html>
