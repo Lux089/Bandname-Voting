@@ -291,6 +291,10 @@
     const API_URL = "https://script.google.com/macros/s/AKfycbxXM0gCbm0M3vCeTvZDtkDWU0zNBN1x6QONaQoH7C21viGdIIAA_n__837MjCeOgsoVNA/exec";
     const MAX_VOTES = 5;
 
+    // #region agent log
+    fetch('http://127.0.0.1:7642/ingest/399b9bdc-2c5e-45ef-98ef-faf461c89680',{method:'POST',headers:{'Content-Type':'application/json','X-Debug-Session-Id':'2caa59'},body:JSON.stringify({sessionId:'2caa59',runId:'run1',hypothesisId:'H4',location:'index.html:script:init',message:'script loaded',data:{hasBatchSubmit:true},timestamp:Date.now()})}).catch(()=>{});
+    // #endregion agent log
+
     function normalizeVoter(value) {
       return (value || '').trim().toLowerCase();
     }
@@ -355,6 +359,10 @@
 
       setStatus(msg, null, 'Speichere...');
 
+      // #region agent log
+      fetch('http://127.0.0.1:7642/ingest/399b9bdc-2c5e-45ef-98ef-faf461c89680',{method:'POST',headers:{'Content-Type':'application/json','X-Debug-Session-Id':'2caa59'},body:JSON.stringify({sessionId:'2caa59',runId:'run1',hypothesisId:'H1',location:'index.html:submitSuggestionsBatch:preFetch',message:'submitSuggestionsBatch pre-fetch payload summary',data:{action:'submitSuggestionsBatch',nameLength:name.length,suggestionCount:vorschlaege.length},timestamp:Date.now()})}).catch(()=>{});
+      // #endregion agent log
+
       const res = await fetch(API_URL, {
         method: 'POST',
         body: JSON.stringify({
@@ -365,6 +373,9 @@
       });
 
       const data = await res.json();
+      // #region agent log
+      fetch('http://127.0.0.1:7642/ingest/399b9bdc-2c5e-45ef-98ef-faf461c89680',{method:'POST',headers:{'Content-Type':'application/json','X-Debug-Session-Id':'2caa59'},body:JSON.stringify({sessionId:'2caa59',runId:'run1',hypothesisId:'H2',location:'index.html:submitSuggestionsBatch:postFetch',message:'submitSuggestionsBatch response',data:{ok:data.ok,error:data.error||null},timestamp:Date.now()})}).catch(()=>{});
+      // #endregion agent log
       if (data.ok) {
         setStatus(msg, true, `Gespeichert! ${data.count || vorschlaege.length} Vorschläge übernommen.`);
         document.getElementById('suggestionList').innerHTML = '';
