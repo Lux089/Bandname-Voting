@@ -1,0 +1,126 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Bandnamen sammeln</title>
+  <style>
+    body {
+      font-family: Arial, sans-serif;
+      max-width: 700px;
+      margin: 40px auto;
+      padding: 20px;
+      line-height: 1.5;
+    }
+    input, button {
+      padding: 10px;
+      margin: 8px 0;
+      width: 100%;
+      box-sizing: border-box;
+    }
+    button {
+      cursor: pointer;
+    }
+    .box {
+      border: 1px solid #ccc;
+      padding: 16px;
+      border-radius: 10px;
+      margin-bottom: 20px;
+    }
+    .item {
+      border-bottom: 1px solid #eee;
+      padding: 10px 0;
+    }
+  </style>
+</head>
+<body>
+  <h1>Bandnamen sammeln</h1>
+
+  <div class="box">
+    <h2>Vorschlag einreichen</h2>
+    <input id="name" placeholder="Dein Name (optional)">
+    <input id="vorschlag" placeholder="Dein Bandname">
+    <button onclick="submitSuggestion()">Absenden</button>
+    <p id="msg"></p>
+  </div>
+
+  <div class="box">
+    <h2>Voting</h2>
+    <input id="voter" placeholder="Dein Voting-Code oder Name">
+    <button onclick="loadSuggestions()">Vorschläge laden</button>
+    <div id="list"></div>
+    <p id="voteMsg"></p>
+  </div>
+
+  <script>
+    const API_URL = "https://script.google.com/macros/s/AKfycbxXM0gCbm0M3vCeTvZDtkDWU0zNBN1x6QONaQoH7C21viGdIIAA_n__837MjCeOgsoVNA/exec";
+
+    async function submitSuggestion() {
+      const name = document.getElementById('name').value;
+      const vorschlag = document.getElementById('vorschlag').value;
+      const msg = document.getElementById('msg');
+
+      const res = await fetch(API_URL, {
+        method: 'POST',
+        body: JSON.stringify({
+          action: 'submitSuggestion',
+          name,
+          vorschlag
+        })
+      });
+
+      const data = await res.json();
+      msg.textContent = data.ok ? 'Gespeichert!' : 'Fehler: ' + data.error;
+    }
+
+    async function loadSuggestions() {
+      const list = document.getElementById('list');
+      list.innerHTML = 'Lade...';
+
+      const res = await fetch(API_URL + '?action=list');
+      const data = await res.json();
+
+      if (!data.ok) {
+        list.innerHTML = 'Fehler beim Laden';
+        return;
+      }
+
+      list.innerHTML = '';
+
+      data.items.forEach(item => {
+        const div = document.createElement('div');
+        div.className = 'item';
+
+        const title = document.createElement('strong');
+        title.textContent = item.vorschlag;
+
+        const button = document.createElement('button');
+        button.textContent = 'Dafür stimmen';
+        button.onclick = () => vote(item.id);
+
+        div.appendChild(title);
+        div.appendChild(document.createElement('br'));
+        div.appendChild(button);
+        list.appendChild(div);
+      });
+    }
+
+    async function vote(vorschlagId) {
+      const voter = document.getElementById('voter').value;
+      const voteMsg = document.getElementById('voteMsg');
+
+      const res = await fetch(API_URL, {
+        method: 'POST',
+        body: JSON.stringify({
+          action: 'vote',
+          voter,
+          vorschlag_id: vorschlagId
+        })
+      });
+
+      const data = await res.json();
+      voteMsg.textContent = data.ok ? 'Vote gespeichert!' : 'Fehler: ' + data.error;
+    }
+  </script>
+</body>
+</html>
