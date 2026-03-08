@@ -190,6 +190,23 @@
       font-weight: 600;
     }
 
+    .link-button {
+      background: none;
+      border: none;
+      padding: 0;
+      color: var(--muted);
+      font-size: 0.85rem;
+      font-weight: 500;
+      width: auto;
+      cursor: pointer;
+      justify-content: flex-end;
+    }
+
+    .link-button:hover {
+      color: var(--text);
+      background: none;
+    }
+
     .suggestion-row {
       display: grid;
       grid-template-columns: 1fr auto;
@@ -294,7 +311,7 @@
         <h1 id="headline">Bandnamen sammeln</h1>
         <p id="subline">Sammelt neue Namen, prüft die Vorschläge und stimmt gemeinsam ab. Die Auswahl ist pro Person begrenzt, damit die Entscheidung fair bleibt.</p>
       </div>
-      <button class="secondary" id="switchUser" onclick="resetMember()" style="display: none;">Benutzer wechseln</button>
+      <button class="link-button" id="switchUser" onclick="resetMember()" style="display: none;">Benutzer wechseln</button>
     </div>
   </header>
 
@@ -303,11 +320,10 @@
       <h2>Wer bist du?</h2>
       <div class="field">
         <label for="memberSelect">Bandmitglied</label>
-        <select id="memberSelect">
+        <select id="memberSelect" onchange="confirmMember()">
           <option value="">Bitte auswählen…</option>
         </select>
       </div>
-      <button onclick="confirmMember()">Weiter</button>
       <p class="hint">Die Auswahl wird gespeichert, bis du sie änderst.</p>
     </div>
     <div class="box">
@@ -419,7 +435,9 @@
     function applyMember(name) {
       currentUser = name;
       document.getElementById('userSelectBox').style.display = 'none';
-      document.getElementById('switchUser').style.display = 'inline-flex';
+      const switchUser = document.getElementById('switchUser');
+      switchUser.style.display = 'inline-flex';
+      switchUser.textContent = `Benutzer wechseln · ${name}`;
       document.getElementById('headline').textContent = `Hallo ${name}`;
       document.getElementById('subline').textContent = 'Du kannst jetzt Vorschläge einreichen und abstimmen.';
     }
@@ -428,7 +446,9 @@
       currentUser = '';
       localStorage.removeItem(USER_KEY);
       document.getElementById('userSelectBox').style.display = 'block';
-      document.getElementById('switchUser').style.display = 'none';
+      const switchUser = document.getElementById('switchUser');
+      switchUser.style.display = 'none';
+      switchUser.textContent = 'Benutzer wechseln';
       document.getElementById('headline').textContent = 'Bandnamen sammeln';
       document.getElementById('subline').textContent = 'Sammelt neue Namen, prüft die Vorschläge und stimmt gemeinsam ab. Die Auswahl ist pro Person begrenzt, damit die Entscheidung fair bleibt.';
       document.getElementById('memberSelect').value = '';
