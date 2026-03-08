@@ -224,6 +224,11 @@
       background: none;
     }
 
+    .footer-link {
+      margin-top: 24px;
+      text-align: center;
+    }
+
     .suggestion-row {
       display: grid;
       grid-template-columns: 1fr auto;
@@ -410,11 +415,14 @@
       <h2>Ergebnisse</h2>
       <div class="row">
         <button onclick="loadResults()">Ergebnisse laden</button>
-        <button class="secondary" onclick="exportResultsCsv()" id="exportCsv" disabled>CSV exportieren</button>
       </div>
       <div id="results" class="list"></div>
       <p id="resultsMsg" class="status"></p>
     </div>
+  </div>
+
+  <div class="footer-link">
+    <button class="link-button" onclick="exportResultsCsv()" id="exportCsv" style="display: none;">Ergebnis als CSV exportieren</button>
   </div>
 
   <script>
@@ -701,7 +709,7 @@
       const exportButton = document.getElementById('exportCsv');
       results.innerHTML = '<div class="meta">Lade Ergebnisse...</div>';
       setStatus(resultsMsg, null, '');
-      exportButton.disabled = true;
+      exportButton.style.display = 'none';
 
       const res = await fetch(API_URL + '?action=results');
       const data = await res.json();
@@ -744,7 +752,7 @@
 
       results.innerHTML = '';
       results.appendChild(table);
-      exportButton.disabled = false;
+      exportButton.style.display = 'inline-flex';
     }
 
     function exportResultsCsv() {
