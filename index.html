@@ -289,17 +289,29 @@
 </head>
 <body>
   <header>
-    <h1>Bandnamen sammeln</h1>
-    <p>Sammelt neue Namen, prüft die Vorschläge und stimmt gemeinsam ab. Die Auswahl ist pro Person begrenzt, damit die Entscheidung fair bleibt.</p>
+    <div class="row">
+      <div>
+        <h1 id="headline">Bandnamen sammeln</h1>
+        <p id="subline">Sammelt neue Namen, prüft die Vorschläge und stimmt gemeinsam ab. Die Auswahl ist pro Person begrenzt, damit die Entscheidung fair bleibt.</p>
+      </div>
+      <button class="secondary" id="switchUser" onclick="resetMember()" style="display: none;">Benutzer wechseln</button>
+    </div>
   </header>
 
   <div class="layout">
+    <div class="box" id="userSelectBox">
+      <h2>Wer bist du?</h2>
+      <div class="field">
+        <label for="memberSelect">Bandmitglied</label>
+        <select id="memberSelect">
+          <option value="">Bitte auswählen…</option>
+        </select>
+      </div>
+      <button onclick="confirmMember()">Weiter</button>
+      <p class="hint">Die Auswahl wird gespeichert, bis du sie änderst.</p>
+    </div>
     <div class="box">
       <h2>Vorschlag einreichen</h2>
-      <div class="field">
-        <label for="name">Dein Name (optional)</label>
-        <input id="name" placeholder="z. B. Alex">
-      </div>
       <div class="field">
         <label>Deine Bandnamen</label>
         <div id="suggestionList" class="list"></div>
@@ -314,10 +326,6 @@
 
     <div class="box">
       <h2>Voting</h2>
-      <div class="field">
-        <label for="voter">Dein Voting-Code oder Name</label>
-        <input id="voter" placeholder="z. B. alex-2026">
-      </div>
       <div class="row">
         <button onclick="loadSuggestions()">Vorschläge laden</button>
         <div class="pill" id="voteCount">Ausgewählt: 0/7</div>
@@ -342,6 +350,9 @@
   <script>
     const API_URL = "https://script.google.com/macros/s/AKfycbyh3NtK9yudQQe-Ht-h5HpYNifXtdTb9Z8n13q2LHyxVSotkxJ04jwsk1MropA8tXuRxQ/exec";
     const MAX_VOTES = 7;
+    const MEMBERS = ["Anna", "Benny", "Henry", "Lukas", "Stefan", "Torsten"];
+    const USER_KEY = "bandnameUser";
+    let currentUser = "";
 
     function normalizeVoter(value) {
       return (value || '').trim().toLowerCase();
@@ -380,6 +391,49 @@
       input.focus();
     }
 
+    function initMemberSelect() {
+      const select = document.getElementById('memberSelect');
+      MEMBERS.forEach(name => {
+        const opt = document.createElement('option');
+        opt.value = name;
+        opt.textContent = name;
+        select.appendChild(opt);
+      });
+
+      const saved = localStorage.getItem(USER_KEY);
+      if (saved) {
+        applyMember(saved);
+      }
+    }
+
+    function confirmMember() {
+      const select = document.getElementById('memberSelect');
+      if (!select.value) {
+        setStatus(document.getElementById('msg'), false, 'Bitte zuerst ein Bandmitglied auswählen.');
+        return;
+      }
+      localStorage.setItem(USER_KEY, select.value);
+      applyMember(select.value);
+    }
+
+    function applyMember(name) {
+      currentUser = name;
+      document.getElementById('userSelectBox').style.display = 'none';
+      document.getElementById('switchUser').style.display = 'inline-flex';
+      document.getElementById('headline').textContent = `Hallo ${name}`;
+      document.getElementById('subline').textContent = 'Du kannst jetzt Vorschläge einreichen und abstimmen.';
+    }
+
+    function resetMember() {
+      currentUser = '';
+      localStorage.removeItem(USER_KEY);
+      document.getElementById('userSelectBox').style.display = 'block';
+      document.getElementById('switchUser').style.display = 'none';
+      document.getElementById('headline').textContent = 'Bandnamen sammeln';
+      document.getElementById('subline').textContent = 'Sammelt neue Namen, prüft die Vorschläge und stimmt gemeinsam ab. Die Auswahl ist pro Person begrenzt, damit die Entscheidung fair bleibt.';
+      document.getElementById('memberSelect').value = '';
+    }
+
     function ensureSuggestionRow() {
       const list = document.getElementById('suggestionList');
       if (!list.children.length) {
@@ -394,7 +448,11 @@
     }
 
     async function submitSuggestionsBatch() {
-      const name = document.getElementById('name').value.trim();
+      if (!currentUser) {
+        setStatus(document.getElementById('msg'), false, 'Bitte zuerst ein Bandmitglied auswählen.');
+        return;
+      }
+      const name = currentUser;
       const inputs = Array.from(document.querySelectorAll('.suggestion-input'));
       const vorschlaege = inputs.map(input => input.value.trim()).filter(Boolean);
       const msg = document.getElementById('msg');
@@ -513,14 +571,13 @@
     }
 
     async function submitVotesBatch() {
-      const voter = normalizeVoter(document.getElementById('voter').value);
-      const voteMsg = document.getElementById('voteMsg');
-      const { selected, total } = getSelectedVotes();
-
-      if (!voter) {
-        setStatus(voteMsg, false, 'Bitte zuerst deinen Voting-Code oder Namen eingeben.');
+      if (!currentUser) {
+        setStatus(document.getElementById('voteMsg'), false, 'Bitte zuerst ein Bandmitglied auswählen.');
         return;
       }
+      const voter = normalizeVoter(currentUser);
+      const voteMsg = document.getElementById('voteMsg');
+      const { selected, total } = getSelectedVotes();
 
       if (!selected.length) {
         setStatus(voteMsg, false, 'Bitte mindestens einen Vorschlag auswählen.');
@@ -641,6 +698,7 @@
 
     addSuggestionRow();
     updateVoteCount();
+    initMemberSelect();
   </script>
 </body>
 </html>
