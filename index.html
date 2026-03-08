@@ -226,6 +226,52 @@
       align-items: center;
     }
 
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      font-size: 0.95rem;
+    }
+
+    th, td {
+      text-align: left;
+      padding: 10px 8px;
+      border-bottom: 1px solid var(--line);
+    }
+
+    th {
+      color: var(--muted);
+      font-weight: 600;
+      font-size: 0.85rem;
+      text-transform: uppercase;
+      letter-spacing: 0.04em;
+    }
+
+    .rank-1 td:first-child::before,
+    .rank-2 td:first-child::before,
+    .rank-3 td:first-child::before {
+      display: inline-block;
+      margin-right: 8px;
+      font-weight: 700;
+    }
+
+    .rank-1 td:first-child::before {
+      content: "🥇";
+    }
+
+    .rank-2 td:first-child::before {
+      content: "🥈";
+    }
+
+    .rank-3 td:first-child::before {
+      content: "🥉";
+    }
+
+    .rank-1 td,
+    .rank-2 td,
+    .rank-3 td {
+      background: #f6f8ff;
+    }
+
     @media (max-width: 720px) {
       header {
         margin-top: 24px;
@@ -284,6 +330,16 @@
       <div id="list" class="list"></div>
       <button id="submitVotes" onclick="submitVotesBatch()" disabled>Votes absenden</button>
       <p id="voteMsg" class="status"></p>
+    </div>
+
+    <div class="box">
+      <h2>Ergebnisse</h2>
+      <div class="row">
+        <button onclick="loadResults()">Ergebnisse laden</button>
+        <button class="secondary" onclick="exportResultsCsv()" id="exportCsv" disabled>CSV exportieren</button>
+      </div>
+      <div id="results" class="list"></div>
+      <p id="resultsMsg" class="status"></p>
     </div>
   </div>
 
@@ -533,6 +589,90 @@
       } else {
         setStatus(voteMsg, false, 'Fehler: ' + data.error);
       }
+    }
+
+    async function loadResults() {
+      const results = document.getElementById('results');
+      const resultsMsg = document.getElementById('resultsMsg');
+      const exportButton = document.getElementById('exportCsv');
+      results.innerHTML = '<div class="meta">Lade Ergebnisse...</div>';
+      setStatus(resultsMsg, null, '');
+      exportButton.disabled = true;
+
+      const res = await fetch(API_URL + '?action=results');
+      const data = await res.json();
+
+      if (!data.ok) {
+        results.innerHTML = '<div class="meta">Fehler beim Laden.</div>';
+        setStatus(resultsMsg, false, data.error || 'Fehler beim Laden.');
+        return;
+      }
+
+      if (!data.items || !data.items.length) {
+        results.innerHTML = '<div class="meta">Noch keine Stimmen vorhanden.</div>';
+        return;
+      }
+
+      window.latestResults = data.items;
+      const table = document.createElement('table');
+      table.innerHTML = `
+        <thead>
+          <tr>
+            <th>Bandname</th>
+            <th>Stimmen</th>
+          </tr>
+        </thead>
+        <tbody></tbody>
+      `;
+
+      const tbody = table.querySelector('tbody');
+      data.items.forEach((item, index) => {
+        const row = document.createElement('tr');
+        if (index === 0) row.classList.add('rank-1');
+        if (index === 1) row.classList.add('rank-2');
+        if (index === 2) row.classList.add('rank-3');
+        row.innerHTML = `
+          <td>${item.vorschlag}</td>
+          <td>${item.votes}</td>
+        `;
+        tbody.appendChild(row);
+      });
+
+      results.innerHTML = '';
+      results.appendChild(table);
+      exportButton.disabled = false;
+    }
+
+    function exportResultsCsv() {
+      const items = window.latestResults || [];
+      if (!items.length) {
+        setStatus(document.getElementById('resultsMsg'), false, 'Keine Ergebnisse zum Exportieren.');
+        return;
+      }
+
+      const escapeValue = (value) => {
+        const text = String(value ?? '');
+        if (text.includes('"') || text.includes(';') || text.includes('\n')) {
+          return `"${text.replace(/"/g, '""')}"`;
+        }
+        return text;
+      };
+
+      const rows = [
+        ['Bandname', 'Stimmen'],
+        ...items.map(item => [item.vorschlag, item.votes])
+      ];
+
+      const csv = rows.map(row => row.map(escapeValue).join(';')).join('\n');
+      const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' });
+      const url = URL.createObjectURL(blob);
+      const link = document.createElement('a');
+      link.href = url;
+      link.download = 'bandname-ergebnisse.csv';
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
+      URL.revokeObjectURL(url);
     }
 
     addSuggestionRow();
