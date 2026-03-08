@@ -215,10 +215,6 @@
       align-items: center;
     }
 
-    .vote-row input[type="number"] {
-      width: 72px;
-      text-align: center;
-    }
 
     .actions {
       display: flex;
@@ -324,9 +320,9 @@
       </div>
       <div class="row">
         <button onclick="loadSuggestions()">Vorschläge laden</button>
-        <div class="pill" id="voteCount">Ausgewählt: 0/5</div>
+        <div class="pill" id="voteCount">Ausgewählt: 0/7</div>
       </div>
-      <p class="hint">Maximal 5 Stimmen pro Person. Mehrfachstimmen für denselben Vorschlag sind erlaubt.</p>
+      <p class="hint">Maximal 7 Stimmen pro Person. Pro Bandname ist nur eine Stimme möglich.</p>
       <div id="list" class="list"></div>
       <button id="submitVotes" onclick="submitVotesBatch()" disabled>Votes absenden</button>
       <p id="voteMsg" class="status"></p>
@@ -345,7 +341,7 @@
 
   <script>
     const API_URL = "https://script.google.com/macros/s/AKfycbyh3NtK9yudQQe-Ht-h5HpYNifXtdTb9Z8n13q2LHyxVSotkxJ04jwsk1MropA8tXuRxQ/exec";
-    const MAX_VOTES = 5;
+    const MAX_VOTES = 7;
 
     function normalizeVoter(value) {
       return (value || '').trim().toLowerCase();
@@ -467,24 +463,8 @@
         const title = document.createElement('strong');
         title.textContent = item.vorschlag;
 
-        const count = document.createElement('input');
-        count.type = 'number';
-        count.min = '1';
-        count.value = '1';
-        count.disabled = true;
-
         checkbox.addEventListener('change', () => {
-          count.disabled = !checkbox.checked;
-          if (checkbox.checked) {
-            count.value = '1';
-          }
           updateVoteCount();
-        });
-
-        count.addEventListener('input', () => {
-          const numeric = Math.max(1, Number(count.value) || 1);
-          count.value = String(numeric);
-          enforceVoteLimit(count);
         });
 
         const meta = document.createElement('div');
@@ -495,7 +475,6 @@
 
         row.appendChild(checkbox);
         row.appendChild(title);
-        row.appendChild(count);
 
         div.appendChild(row);
         div.appendChild(meta);
@@ -512,9 +491,8 @@
 
       items.forEach(item => {
         const checkbox = item.querySelector('input[type="checkbox"]');
-        const countInput = item.querySelector('input[type="number"]');
-        if (checkbox && countInput && checkbox.checked) {
-          const count = Math.max(1, Number(countInput.value) || 1);
+        if (checkbox && checkbox.checked) {
+          const count = 1;
           selected.push({
             vorschlag_id: checkbox.dataset.vorschlagId,
             count
@@ -532,16 +510,6 @@
       const submit = document.getElementById('submitVotes');
       pill.textContent = `Ausgewählt: ${total}/${MAX_VOTES}`;
       submit.disabled = total === 0 || total > MAX_VOTES;
-    }
-
-    function enforceVoteLimit(currentInput) {
-      const { total } = getSelectedVotes();
-      if (total > MAX_VOTES) {
-        const currentValue = Math.max(1, Number(currentInput.value) || 1);
-        const excess = total - MAX_VOTES;
-        currentInput.value = String(Math.max(1, currentValue - excess));
-      }
-      updateVoteCount();
     }
 
     async function submitVotesBatch() {
@@ -580,10 +548,6 @@
         setStatus(voteMsg, true, `Votes gespeichert (${data.count || total}).`);
         document.querySelectorAll('#list input[type="checkbox"]').forEach(checkbox => {
           checkbox.checked = false;
-        });
-        document.querySelectorAll('#list input[type="number"]').forEach(input => {
-          input.value = '1';
-          input.disabled = true;
         });
         updateVoteCount();
       } else {
