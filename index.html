@@ -720,12 +720,12 @@
         return;
       }
 
-      if (!data.items || !data.items.length) {
+      if (!data.results || !data.results.length) {
         results.innerHTML = '<div class="meta">Noch keine Stimmen vorhanden.</div>';
         return;
       }
 
-      window.latestResults = data.items;
+      window.latestResults = data.results;
       const table = document.createElement('table');
       table.innerHTML = `
         <thead>
@@ -738,13 +738,13 @@
       `;
 
       const tbody = table.querySelector('tbody');
-      data.items.forEach((item, index) => {
+      data.results.forEach((item, index) => {
         const row = document.createElement('tr');
         if (index === 0) row.classList.add('rank-1');
         if (index === 1) row.classList.add('rank-2');
         if (index === 2) row.classList.add('rank-3');
         row.innerHTML = `
-          <td>${item.vorschlag}</td>
+          <td>${item.name}</td>
           <td>${item.votes}</td>
         `;
         tbody.appendChild(row);
@@ -772,7 +772,7 @@
 
       const rows = [
         ['Bandname', 'Stimmen'],
-        ...items.map(item => [item.vorschlag, item.votes])
+        ...items.map(item => [item.name, item.votes])
       ];
 
       const csv = rows.map(row => row.map(escapeValue).join(';')).join('\n');
